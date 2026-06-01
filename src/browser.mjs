@@ -9,7 +9,7 @@ export { getTheme, listThemes, themeToCss } from "./themes.mjs";
 export { redactSecrets, redactObject } from "./secrets.mjs";
 
 import { themeToCss, getTheme } from "./themes.mjs";
-import { redactSecrets, redactObject } from "./secrets.mjs";
+import { redactObject } from "./secrets.mjs";
 
 function escapeHtml(str) {
   return str
