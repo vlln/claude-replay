@@ -106,5 +106,27 @@ export function resolveSessionId(sessionId, { home } = {}) {
     }
   } catch { /* directory doesn't exist */ }
 
+  // Kimi Code: ~/.kimi-code/sessions/<project>/<session>/agents/main/wire.jsonl
+  const kimiBase = join(homeDir, ".kimi-code", "sessions");
+  try {
+    for (const proj of readdirSync(kimiBase)) {
+      const projPath = join(kimiBase, proj);
+      try { if (!statSync(projPath).isDirectory()) continue; } catch { continue; }
+      for (const sessionDir of readdirSync(projPath)) {
+        if (!sessionDir.startsWith("session_")) continue;
+        const sessionIdFromDir = sessionDir.replace(/^session_/, "");
+        const wirePath = join(projPath, sessionDir, "agents", "main", "wire.jsonl");
+        try {
+          statSync(wirePath);
+          if (sessionIdFromDir === sessionId || sessionIdFromDir.includes(sessionId)) {
+            const parts = proj.replace(/^wd_/, "").split("_");
+            const displayName = parts.length > 1 ? parts.slice(-2).join("-") : parts[0];
+            matches.push({ path: wirePath, project: displayName, group: "Kimi Code" });
+          }
+        } catch { /* not found */ }
+      }
+    }
+  } catch { /* directory doesn't exist */ }
+
   return matches;
 }

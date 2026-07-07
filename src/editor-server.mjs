@@ -503,6 +503,36 @@ function discoverSessions() {
     if (codexGroup.projects.length > 0) groups.push(codexGroup);
   } catch { /* directory doesn't exist */ }
 
+  // Kimi Code: ~/.kimi-code/sessions/<project>/<session>/agents/main/wire.jsonl
+  const kimiBase = join(home, ".kimi-code", "sessions");
+  try {
+    const kimiGroup = { name: "Kimi Code", projects: [] };
+    for (const proj of readdirSync(kimiBase).sort()) {
+      const projPath = join(kimiBase, proj);
+      try { if (!statSync(projPath).isDirectory()) continue; } catch { continue; }
+      const kimiSessions = [];
+      for (const sessionDir of readdirSync(projPath)) {
+        if (!sessionDir.startsWith("session_")) continue;
+        const wirePath = join(projPath, sessionDir, "agents", "main", "wire.jsonl");
+        try {
+          const stat = statSync(wirePath);
+          kimiSessions.push({ file: sessionDir, path: wirePath, date: stat.mtime.toISOString() });
+        } catch { continue; }
+      }
+      if (kimiSessions.length === 0) continue;
+      kimiSessions.sort((a, b) => {
+        if (!a.date && !b.date) return 0;
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return b.date.localeCompare(a.date);
+      });
+      const parts = proj.replace(/^wd_/, "").split("_");
+      const displayName = parts.length > 1 ? parts.slice(-2).join("-") : parts[0];
+      kimiGroup.projects.push({ name: displayName, dirName: proj, sessions: kimiSessions });
+    }
+    if (kimiGroup.projects.length > 0) groups.push(kimiGroup);
+  } catch { /* directory doesn't exist */ }
+
   return groups;
 }
 
