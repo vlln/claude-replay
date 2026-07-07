@@ -108,6 +108,7 @@ function turnsToJsonData(turns, { redact = true, redactRules } = {}) {
     }),
     timestamp: turn.timestamp,
     ...(turn.system_events ? { system_events: turn.system_events } : {}),
+    ...(turn.usage ? { usage: turn.usage } : {}),
   }));
 }
 

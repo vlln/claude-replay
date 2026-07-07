@@ -707,6 +707,8 @@ body.in-iframe .more-open-link + hr.more-divider { display: block; }
 .turn.collapsed .turn-header-chevron { transform: rotate(-90deg); }
 .turn-header-label { font-weight: 600; color: var(--text); }
 .turn-header-ts { margin-left: auto; font-size: 10px; }
+.turn-header-usage { margin-left: 8px; font-size: 10px; color: var(--text-dim); }
+.token-total { margin-left: 12px; font-size: 10px; color: var(--text-dim); white-space: nowrap; }
 .turn-body {
   overflow: hidden;
   transition: max-height 0.3s ease;
@@ -1079,6 +1081,7 @@ body.in-iframe .more-open-link + hr.more-divider { display: block; }
       </div>
       <a class="bar-title" id="bar-title" title="/*PAGE_TITLE*/">/*PAGE_TITLE*/</a>
       <span class="progress-text" id="progress-text">0 of 0</span>
+	      <span class="token-total" id="token-total" title="Total tokens"></span>
       <div class="controls-secondary">
         <div class="chapter-wrap" id="chapter-wrap" style="display:none">
           <button id="chapter-btn" title="Chapters">&#9776;</button>
@@ -1184,6 +1187,18 @@ body.in-iframe .more-open-link + hr.more-divider { display: block; }
   const BOOKMARKS = await decodeData("/*BOOKMARKS_DATA*/");
   const FILES = await decodeData("/*FILES_DATA*/");
 
+  // Compute total token usage across all turns
+  let totalInputTokens = 0, totalOutputTokens = 0;
+  for (const t of TURNS) {
+    if (t.usage) {
+      totalInputTokens += t.usage.input_tokens || 0;
+      totalOutputTokens += t.usage.output_tokens || 0;
+    }
+  }
+  if (totalInputTokens || totalOutputTokens) {
+    document.getElementById("token-total").textContent = `in: ${formatTokens(totalInputTokens)}  out: ${formatTokens(totalOutputTokens)}`;
+  }
+
   const SPEED_STEPS = [0.5, 1, 2, 3, 5];
   const ANIMATE_MIN_DELAY = 600;       // minimum ms between consecutive block reveals
   const ANIMATE_FALLBACK_DELAY = 800;  // ms between blocks when timestamps missing
@@ -1256,6 +1271,13 @@ body.in-iframe .more-open-link + hr.more-divider { display: block; }
     const s = totalSec % 60;
     if (h > 0) return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
     return m + ":" + String(s).padStart(2, "0");
+  }
+
+  function formatTokens(n) {
+    if (n == null || n === 0) return "0";
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
+    if (n >= 1000) return (n / 1000).toFixed(1) + "K";
+    return String(n);
   }
 
   // Build a map of turn index → bookmark label for quick lookup
@@ -1634,10 +1656,15 @@ body.in-iframe .more-open-link + hr.more-divider { display: block; }
     const tsHtml = relStr || absStr
       ? `<span class="turn-header-ts" ${absStr ? `title="${absStr}"` : ""}>${relStr || absStr}</span>`
       : "";
+    let usageHtml = "";
+    if (turn.usage) {
+      usageHtml = `<span class="turn-header-usage">in:${formatTokens(turn.usage.input_tokens)} out:${formatTokens(turn.usage.output_tokens)}</span>`;
+    }
     const label = displayNum != null ? displayNum : turn.index;
     html += `<div class="turn-header" onclick="this.parentElement.classList.toggle('collapsed')">
       <span class="turn-header-chevron">&#9660;</span>
       <span class="turn-header-label">#${label}</span>
+      ${usageHtml}
       ${tsHtml}
     </div>`;
 

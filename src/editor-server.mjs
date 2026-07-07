@@ -212,6 +212,7 @@ function summarizeTurns(turns) {
     blocks: t.blocks.map(summarizeBlock),
     timestamp: t.timestamp,
     system_events: t.system_events || [],
+    ...(t.usage ? { usage: t.usage } : {}),
   }));
 }
 
