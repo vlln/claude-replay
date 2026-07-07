@@ -503,7 +503,7 @@ function discoverSessions() {
     if (codexGroup.projects.length > 0) groups.push(codexGroup);
   } catch { /* directory doesn't exist */ }
 
-  // Kimi Code: ~/.kimi-code/sessions/<project>/<session>/agents/main/wire.jsonl
+  // Kimi Code: ~/.kimi-code/sessions/<project>/<session>/agents/<name>/wire.jsonl
   const kimiBase = join(home, ".kimi-code", "sessions");
   try {
     const kimiGroup = { name: "Kimi Code", projects: [] };
@@ -513,11 +513,17 @@ function discoverSessions() {
       const kimiSessions = [];
       for (const sessionDir of readdirSync(projPath)) {
         if (!sessionDir.startsWith("session_")) continue;
-        const wirePath = join(projPath, sessionDir, "agents", "main", "wire.jsonl");
-        try {
-          const stat = statSync(wirePath);
-          kimiSessions.push({ file: sessionDir, path: wirePath, date: stat.mtime.toISOString() });
-        } catch { continue; }
+        const agentsDir = join(projPath, sessionDir, "agents");
+        let agentNames;
+        try { agentNames = readdirSync(agentsDir); } catch { continue; }
+        for (const agentName of agentNames) {
+          const wirePath = join(agentsDir, agentName, "wire.jsonl");
+          try {
+            const st = statSync(wirePath);
+            const label = agentName === "main" ? sessionDir : `${sessionDir}/${agentName}`;
+            kimiSessions.push({ file: label, path: wirePath, date: st.mtime.toISOString() });
+          } catch { /* no wire.jsonl for this agent */ }
+        }
       }
       if (kimiSessions.length === 0) continue;
       kimiSessions.sort((a, b) => {
