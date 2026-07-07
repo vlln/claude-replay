@@ -702,6 +702,24 @@ describe("Kimi Code format", () => {
     assert.ok(kinds.includes("tool_use"));
     assert.ok(kinds.includes("text"));
   });
+
+  it("extracts token usage from usage.record events", () => {
+    const turns = parseTranscript(KIMI_CODE_FIXTURE);
+    // Turn 1: simple text response
+    assert.ok(turns[0].usage, "turn 1 should have usage");
+    assert.equal(turns[0].usage.input_tokens, 100);
+    assert.equal(turns[0].usage.output_tokens, 20);
+    assert.equal(turns[0].usage.cache_read_tokens, 0);
+    assert.equal(turns[0].usage.cache_creation_tokens, 0);
+    // Turn 2: tool call with cache usage
+    assert.ok(turns[1].usage, "turn 2 should have usage");
+    assert.equal(turns[1].usage.input_tokens, 800); // 200 + 500 + 100
+    assert.equal(turns[1].usage.output_tokens, 50);
+    assert.equal(turns[1].usage.cache_read_tokens, 500);
+    assert.equal(turns[1].usage.cache_creation_tokens, 100);
+    // Turn 3: no usage.record event
+    assert.equal(turns[2].usage, undefined);
+  });
 });
 
 describe("Turn structure contract", () => {
@@ -726,6 +744,12 @@ describe("Turn structure contract", () => {
         assert.equal(typeof turn.user_text, "string", `${name}: turn.user_text should be string`);
         assert.ok(Array.isArray(turn.blocks), `${name}: turn.blocks should be array`);
         assert.equal(typeof turn.timestamp, "string", `${name}: turn.timestamp should be string`);
+
+        // usage is optional but must have the right shape when present
+        if (turn.usage) {
+          assert.equal(typeof turn.usage.input_tokens, "number", `${name}: usage.input_tokens should be number`);
+          assert.equal(typeof turn.usage.output_tokens, "number", `${name}: usage.output_tokens should be number`);
+        }
 
         for (const block of turn.blocks) {
           assert.ok(["text", "thinking", "tool_use"].includes(block.kind),

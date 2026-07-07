@@ -172,6 +172,7 @@ export function parse(text) {
   let currentUserText = "";
   let currentTimestamp = "";
   let currentBlocks = [];
+  let currentUsage = null;
   let pendingCalls = new Map();
   let inTurn = false;
 
@@ -189,12 +190,29 @@ export function parse(text) {
       continue;
     }
 
+    if (type === "event_msg" && payload.type === "token_count") {
+      if (inTurn) {
+        const total = payload.info?.total_token_usage;
+        if (total) {
+          currentUsage = {
+            input_tokens: total.input_tokens ?? 0,
+            output_tokens: (total.output_tokens ?? 0) + (total.reasoning_output_tokens ?? 0),
+            cache_read_tokens: total.cached_input_tokens ?? 0,
+          };
+        }
+      }
+      continue;
+    }
+
     if (type === "event_msg" && payload.type === "task_complete") {
       if (inTurn) {
         turnIndex++;
-        turns.push({ index: turnIndex, user_text: currentUserText, blocks: currentBlocks, timestamp: currentTimestamp });
+        const turn = { index: turnIndex, user_text: currentUserText, blocks: currentBlocks, timestamp: currentTimestamp };
+        if (currentUsage) turn.usage = currentUsage;
+        turns.push(turn);
       }
       inTurn = false;
+      currentUsage = null;
       continue;
     }
 
@@ -324,7 +342,9 @@ export function parse(text) {
   // Handle session ending without task_complete
   if (inTurn && (currentUserText || currentBlocks.length)) {
     turnIndex++;
-    turns.push({ index: turnIndex, user_text: currentUserText, blocks: currentBlocks, timestamp: currentTimestamp });
+    const turn = { index: turnIndex, user_text: currentUserText, blocks: currentBlocks, timestamp: currentTimestamp };
+    if (currentUsage) turn.usage = currentUsage;
+    turns.push(turn);
   }
 
   return filterEmptyTurns(turns);

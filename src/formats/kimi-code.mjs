@@ -72,6 +72,7 @@ export function parse(text) {
   // Group loop events by turnId
   const turnPrompts = [];        // { turnId, input, time }
   const loopEvents = new Map();  // turnId → events[]
+  const turnUsage = new Map();   // turnId → { input_tokens, output_tokens, ... }
   let currentTurnId = "";
 
   for (const entry of entries) {
@@ -91,6 +92,16 @@ export function parse(text) {
         loopEvents.set(turnId, []);
       }
       loopEvents.get(turnId).push(ev);
+    } else if (entry.type === "usage.record") {
+      const u = entry.usage;
+      if (u && currentTurnId) {
+        turnUsage.set(currentTurnId, {
+          input_tokens: (u.inputOther ?? 0) + (u.inputCacheRead ?? 0) + (u.inputCacheCreation ?? 0),
+          output_tokens: u.output ?? 0,
+          cache_read_tokens: u.inputCacheRead ?? 0,
+          cache_creation_tokens: u.inputCacheCreation ?? 0,
+        });
+      }
     }
   }
 
@@ -162,12 +173,15 @@ export function parse(text) {
       }
     }
 
-    turns.push({
+    const turn = {
       index: 0, // Will be re-indexed by filterEmptyTurns
       user_text: userText,
       blocks,
       timestamp,
-    });
+    };
+    const usage = turnUsage.get(tp.turnId);
+    if (usage) turn.usage = usage;
+    turns.push(turn);
   }
 
   return filterEmptyTurns(turns);

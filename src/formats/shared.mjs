@@ -6,7 +6,7 @@
 /**
  * @typedef {{ tool_use_id: string, name: string, input: object, result: string|null, resultTimestamp: string|null, is_error: boolean }} ToolCall
  * @typedef {{ kind: string, text: string, tool_call: ToolCall|null, timestamp: string|null }} AssistantBlock
- * @typedef {{ index: number, user_text: string, blocks: AssistantBlock[], timestamp: string }} Turn
+ * @typedef {{ index: number, user_text: string, blocks: AssistantBlock[], timestamp: string, usage?: { input_tokens: number, output_tokens: number, cache_read_tokens?: number, cache_creation_tokens?: number } }} Turn
  */
 
 /**
